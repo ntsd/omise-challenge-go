@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -21,6 +22,10 @@ func main() {
 	publicKey := os.Getenv("OMISE_PUBLIC_KEY")
 	secretKey := os.Getenv("OMISE_SECRET_KEY")
 
+	if len(publicKey) == 0 || len(secretKey) == 0 {
+		panic(errors.New("Your OMISE_PUBLIC_KEY or OMISE_SECRET_KEY is empthy"))
+	}
+
 	data, err := os.Open(filePath)
 	checkerror.CheckError(err)
 	reader, err := cipher.NewRot128Reader(data)
@@ -40,13 +45,15 @@ func main() {
 	for i := 0; i < numCPU; i++ {
 		go func() {
 			defer waitMultiCPU.Done()
-			omisecharge.ChargeChannel(publicKey, secretKey, songPahPaChannel, donationStatusChannel)
+			omisecharge.Charge(publicKey, secretKey, songPahPaChannel, donationStatusChannel)
 		}()
 	}
 	waitMultiCPU.Wait()
 
 	close(donationStatusChannel)
 	donationStats := <-donationStatsChannel
+
+	fmt.Println("done.")
 
 	currency := "THB"
 	totalDonation := donationStats.SuccessAmount + donationStats.FailAmount
@@ -55,10 +62,8 @@ func main() {
 	fmt.Printf("%25s %s %14d.00\n", "successfully donated:", currency, donationStats.SuccessAmount)
 	fmt.Printf("%25s %s %14d.00\n", "faulty donation:", currency, donationStats.FailAmount)
 	fmt.Printf("%25s %s %17.2f\n", "average per person:", currency, averageDonation)
-	fmt.Printf("%25s", "top donors:\n")
+	fmt.Printf("%25s \n", "top donors:")
 	for _, topDonation := range donationStats.TopDonations {
 		fmt.Printf("%25s %s\n", "", topDonation.Name)
 	}
-
-	fmt.Println("done.")
 }

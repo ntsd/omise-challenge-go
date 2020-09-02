@@ -1,10 +1,9 @@
 package checkerror
 
-import "fmt"
+import "log"
 
 func CheckError(e error) {
 	if e != nil {
-		fmt.Println(e)
-		panic(e)
+		log.Println(e)
 	}
 }

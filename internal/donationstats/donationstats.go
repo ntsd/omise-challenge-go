@@ -40,16 +40,15 @@ func CalculateDonationStats(donationStatsChannel chan<- *DonationStats, donation
 
 		if donationStatus.IsSuccess {
 			donationStats.SuccessAmount += donationStatus.SongPahPa.Amount
+			pushSortTopDonations(donationStats, donationStatus)
 		} else {
 			donationStats.FailAmount += donationStatus.SongPahPa.Amount
 		}
-
-		sortTopDonations(donationStats, donationStatus)
 	}
 	donationStatsChannel <- donationStats
 }
 
-func sortTopDonations(donationStats *DonationStats, donationStatus *DonationStatus) {
+func pushSortTopDonations(donationStats *DonationStats, donationStatus *DonationStatus) {
 	// To sort the top donation I assume that every SongPahPa have a unique name.
 	topDonationsLength := len(donationStats.TopDonations)
 	i := topDonationsLength

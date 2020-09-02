@@ -1,5 +1,9 @@
 # Omise Go Challenge
 
+## Requirements
+
+- Go 1.13 or above
+
 ## Installation
 
 Install using go get
