@@ -26,14 +26,14 @@ func Charge(publicKey string, privateKey string, songPahPa *songpahpa.SongPahPa)
 func ChargeChannel(publicKey string,
 	privateKey string,
 	songPahPaChannel <-chan *songpahpa.SongPahPa,
-	donationStatus chan<- *donationstats.DonationStatus) {
+	donationStatusChannel chan<- *donationstats.DonationStatus) {
 
 	for songPahPa := range songPahPaChannel {
 		client, err := omise.NewClient(publicKey, privateKey)
 		checkerror.CheckError(err)
 
 		isSuccess := callAPI(client, songPahPa)
-		donationStatus <- &donationstats.DonationStatus{
+		donationStatusChannel <- &donationstats.DonationStatus{
 			IsSuccess: isSuccess,
 			SongPahPa: songPahPa,
 		}
@@ -42,7 +42,7 @@ func ChargeChannel(publicKey string,
 
 func callAPI(client *omise.Client, songPahPa *songpahpa.SongPahPa) bool {
 	// time.Sleep(time.Duration(rand.Intn(3)) * time.Second)
-	fmt.Println(songPahPa)
+	// fmt.Println(songPahPa)
 	return true
 	// token, createToken := &omise.Token{}, &operations.CreateToken{
 	// 	Name:            songPahPa.Name,

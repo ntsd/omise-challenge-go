@@ -11,10 +11,10 @@ import (
 
 type SongPahPaCSV struct {
 	CSVReader        *csv.Reader
-	SongPahPaChannel chan *SongPahPa
+	SongPahPaChannel chan<- *SongPahPa
 }
 
-func SongPahPaCSVReader(reader io.Reader, songPahPaChannel chan *SongPahPa) *SongPahPaCSV {
+func SongPahPaCSVReader(reader io.Reader, songPahPaChannel chan<- *SongPahPa) *SongPahPaCSV {
 	csvReader := csv.NewReader(reader)
 
 	// Read the header

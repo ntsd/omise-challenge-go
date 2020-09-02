@@ -17,43 +17,48 @@ import (
 func main() {
 	fmt.Println("performing donations...")
 
-	var wg sync.WaitGroup
-
 	filePath := os.Args[1]
 	publicKey := os.Getenv("OMISE_PUBLIC_KEY")
 	secretKey := os.Getenv("OMISE_SECRET_KEY")
 
 	data, err := os.Open(filePath)
 	checkerror.CheckError(err)
-
 	reader, err := cipher.NewRot128Reader(data)
 	checkerror.CheckError(err)
 
 	songPahPaChannel := make(chan *songpahpa.SongPahPa)
-
 	songPahPa := songpahpa.SongPahPaCSVReader(reader, songPahPaChannel)
 	go songPahPa.Read()
 
-	donationStatus := make(chan *donationstats.DonationStatus)
-	donationStats := &donationstats.DonationStats{
-		TotalAmount:   0,
-		SuccessAmount: 0,
-		FailAmount:    0,
-		TopDonations:  []*songpahpa.SongPahPa{},
-		Count:         0,
-	}
-	go donationstats.CalculateDonationStats(donationStats, donationStatus)
+	donationStatusChannel := make(chan *donationstats.DonationStatus)
+	donationStatsChannel := make(chan *donationstats.DonationStats)
+	go donationstats.CalculateDonationStats(donationStatsChannel, donationStatusChannel)
 
+	var waitMultiCPU sync.WaitGroup
 	numCPU := runtime.NumCPU()
-	wg.Add(numCPU)
+	waitMultiCPU.Add(numCPU)
 	for i := 0; i < numCPU; i++ {
 		go func() {
-			defer wg.Done()
-			omisecharge.ChargeChannel(publicKey, secretKey, songPahPaChannel, donationStatus)
+			defer waitMultiCPU.Done()
+			omisecharge.ChargeChannel(publicKey, secretKey, songPahPaChannel, donationStatusChannel)
 		}()
 	}
+	waitMultiCPU.Wait()
 
-	wg.Wait()
-	close(donationStatus)
+	close(donationStatusChannel)
+	donationStats := <-donationStatsChannel
+
+	currency := "THB"
+	totalDonation := donationStats.SuccessAmount + donationStats.FailAmount
+	averageDonation := float64(totalDonation) / float64(donationStats.Count)
+	fmt.Printf("%25s %s %14d.00\n", "total received:", currency, totalDonation)
+	fmt.Printf("%25s %s %14d.00\n", "successfully donated:", currency, donationStats.SuccessAmount)
+	fmt.Printf("%25s %s %14d.00\n", "faulty donation:", currency, donationStats.FailAmount)
+	fmt.Printf("%25s %s %17.2f\n", "average per person:", currency, averageDonation)
+	fmt.Printf("%25s", "top donors:\n")
+	for _, topDonation := range donationStats.TopDonations {
+		fmt.Printf("%25s %s\n", "", topDonation.Name)
+	}
+
 	fmt.Println("done.")
 }
